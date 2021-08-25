@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.getarrays.userservice.models.AppUser;
 import com.getarrays.userservice.models.Role;
 import com.getarrays.userservice.services.UserService;
+import com.getarrays.userservice.utilities.JWTUtilities;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -76,18 +77,15 @@ public class UserController {
                 DecodedJWT decodedJWT = jwtVerifier.verify(token);
                 String username = decodedJWT.getSubject();
                 AppUser user = userService.getUser(username);
-                String refreshToken = JWT.create()
-                        .withSubject(user.getUsername())
-                        .withExpiresAt(new Date(System.currentTimeMillis() + 10 * 60 * 1000))
-                        .withIssuer(request.getRequestURI())
-                        .withClaim(
-                                "roles",
-                                user.getRoles()
-                                        .stream().
-                                        map(Role::getName)
-                                        .collect(Collectors.toList())
-                        )
-                        .sign(algorithm);
+                String refreshToken = JWTUtilities.createToken(
+                        request,
+                        user.getUsername(),
+                        10 * 60 * 1000,
+                        user.getRoles()
+                                .stream().
+                                map(Role::getName)
+                                .collect(Collectors.toList())
+                        );
 
                 Map<String, String> tokens = new HashMap<>();
                 tokens.put("access_token", refreshToken);
